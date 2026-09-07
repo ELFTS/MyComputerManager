@@ -1,4 +1,4 @@
-﻿<Page x:Class="MyComputerManager.Views.DetailPage"
+<Page x:Class="MyComputerManager.Views.DetailPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -70,7 +70,11 @@
                 </Grid>
                 <Border.ContextMenu>
                     <ContextMenu>
-                        <ui:MenuItem Command="{Binding OpenIconCommand}" Header="打开图标" />
+                        <ui:MenuItem Command="{Binding OpenIconCommand}" Header="打开图标">
+                            <ui:MenuItem.Icon>
+                                <ui:SymbolIcon Symbol="FolderOpen20" />
+                            </ui:MenuItem.Icon>
+                        </ui:MenuItem>
                         <ui:MenuItem Command="{Binding CopyIconPathCommand}" Header="复制当前图标路径" />
                         <ui:MenuItem Command="{Binding ClearIconCommand}" Header="清除图标" />
                     </ContextMenu>

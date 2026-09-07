@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using MyComputerManager.Models;
 using System;
 using System.Collections.Generic;
@@ -32,8 +32,8 @@ namespace MyComputerManager.Helpers
             }
             catch (Exception ex)
             {
-                var m = new MessageBox();
-                m.Show("读取数据时发生异常", ex.Message);
+                var m = new MessageBox { Title = "读取数据时发生异常", Content = ex.Message };
+                m.ShowDialogAsync(false, System.Threading.CancellationToken.None).GetAwaiter().GetResult();
                 return null;
             }
         }

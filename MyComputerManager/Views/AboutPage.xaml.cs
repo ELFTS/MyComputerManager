@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -28,7 +28,7 @@ namespace MyComputerManager.Views
 
         private void TextBlock_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            Process.Start("explorer", "https://github.com/1357310795/MyComputerManager");
+            Process.Start("explorer", "https://github.com/ELFTS/MyComputerManager");
         }
     }
 }

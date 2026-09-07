@@ -1,63 +1,48 @@
-﻿using MyComputerManager.Models;
-using MyComputerManager.Services.Contracts;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using Wpf.Ui.Common;
+using Microsoft.Extensions.DependencyInjection;
+using MyComputerManager.Models;
+using MyComputerManager.Services.Contracts;
+using Wpf.Ui;
 using Wpf.Ui.Controls;
-using Wpf.Ui.Controls.Interfaces;
 
 namespace MyComputerManager.Services
 {
     public class DialogService : IDialogService
     {
-        private Dialog _dialog;
-        private TaskCompletionSource<bool> source;
-        private bool buttonresult;
-        public void SetDialog(Dialog dialog)
+        private readonly IContentDialogService _contentDialogService;
+
+        public DialogService(IServiceProvider serviceProvider)
         {
-            _dialog = dialog;
-            _dialog.Closed += _dialog_Closed;
-            _dialog.ButtonLeftClick += _dialog_ButtonLeftClick;
-            _dialog.ButtonRightClick += _dialog_ButtonRightClick;
+            _contentDialogService = serviceProvider.GetRequiredService<IContentDialogService>();
         }
 
-        private void _dialog_ButtonRightClick(object sender, RoutedEventArgs e)
+        public void SetDialogHost(ContentDialogHost dialogHost)
         {
-            buttonresult = true;
-            _dialog.Hide();
+            _contentDialogService.SetDialogHost(dialogHost);
         }
 
-        private void _dialog_ButtonLeftClick(object sender, RoutedEventArgs e)
+        public async Task<bool> ShowDialog(DialogMessage content, string primaryText, string secondaryText)
         {
-            buttonresult = false;
-            _dialog.Hide();
-        }
+            var dialog = new ContentDialog
+            {
+                Title = content.Title,
+                Content = new TextBlock
+                {
+                    Text = content.Message,
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(0, 4, 0, 0),
+                    FontSize = 14
+                },
+                PrimaryButtonText = primaryText,
+                SecondaryButtonText = secondaryText,
+                PrimaryButtonAppearance = ControlAppearance.Danger
+            };
 
-        private void _dialog_Closed(Dialog sender, RoutedEventArgs e)
-        {
-            if (source != null)
-                source.SetResult(buttonresult);
+            var result = await _contentDialogService.ShowAsync(dialog, CancellationToken.None);
+            return result == ContentDialogResult.Primary;
         }
-
-        public async Task<bool> ShowDialog(DialogMessage content, double? dialogHeight, ControlAppearance buttonLeftAppearance, string buttonLeftText, ControlAppearance buttonRightAppearance, string buttonRightText)
-        {
-            var res = await App.Current.Dispatcher.Invoke(async () => {
-                _dialog.DataContext = content;
-                if (dialogHeight != null) _dialog.DialogHeight = dialogHeight.Value;
-                _dialog.ButtonLeftAppearance = buttonLeftAppearance;
-                _dialog.ButtonRightAppearance = buttonRightAppearance;
-                _dialog.ButtonLeftName = buttonLeftText;
-                _dialog.ButtonRightName = buttonRightText;
-                return await _dialog.ShowAndWaitAsync(); 
-            });
-            source = new TaskCompletionSource<bool>();
-            source.Task.Wait();
-            return buttonresult;
-        }
-
     }
 }

@@ -1,60 +1,60 @@
-﻿using MyComputerManager.Helpers;
+using MyComputerManager.Helpers;
 using MyComputerManager.Models;
 using MyComputerManager.Services.Contracts;
 using MyComputerManager.ViewModels;
 using MyComputerManager.Views;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Drawing;
-using System.IO;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
-using Wpf.Ui.Controls.Interfaces;
-using Wpf.Ui.Mvvm.Contracts;
-using IDialogService = MyComputerManager.Services.Contracts.IDialogService;
+using IContentDialogService = Wpf.Ui.IContentDialogService;
 
 namespace MyComputerManager
 {
-    /// <summary>
-    /// MainWindow.xaml 的交互逻辑
-    /// </summary>
-    public partial class MainWindow : INavigationWindow
+    public partial class MainWindow
     {
         private readonly IDataService _dataService;
         private readonly INavigationService _navigationService;
-        private readonly IThemeService _themeService;
         private readonly ISnackBarService _snackBarService;
         private readonly IDialogService _dialogService;
-        public MainWindow(INavigationService navigationService, IPageService pageService, IDataService dataService, IThemeService themeService, ISnackBarService snackBarService, IDialogService dialogService)
+        private readonly IThemeManagerService _themeManagerService;
+        private readonly IContentDialogService _contentDialogService;
+
+        public MainWindow(INavigationService navigationService, IDataService dataService,
+            ISnackBarService snackBarService, IDialogService dialogService, IThemeManagerService themeManagerService,
+            IContentDialogService contentDialogService)
         {
             InitializeComponent();
-            //Wpf.Ui.Appearance.Background.Apply(this, Wpf.Ui.Appearance.BackgroundType.Mica);
-            //var c = Accent.GetColorizationColor();
-            //System.Windows.MessageBox.Show(c.ToString());
-            SetPageService(pageService);
-            navigationService.SetNavigationControl(RootNavigation);
-            snackBarService.SetSnackbar(RootSnackbar);
-            dialogService.SetDialog(RootDialog);
             _dataService = dataService;
             _navigationService = navigationService;
-            _themeService = themeService;
             _snackBarService = snackBarService;
             _dialogService = dialogService;
+            _themeManagerService = themeManagerService;
+            _contentDialogService = contentDialogService;
+
+            _navigationService.SetFrame(RootFrame);
+            _snackBarService.SetSnackbarPresenter(RootSnackbar);
+            _dialogService.SetDialogHost(RootDialog);
 
             WelcomeGrid.Visibility = Visibility.Visible;
         }
 
+        public void ShowWindow()
+        {
+            Show();
+            Activate();
+        }
+
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            _themeService.SetTheme(ThemeType.Light);
-            RootNavigation.Frame = RootFrame;
-            RootNavigation.Items.Add(new NavigationItem() { PageType = typeof(MainPage), Cache = false});
-            RootNavigation.Items.Add(new NavigationItem() { PageType = typeof(DetailPage), Cache = false});
-            //RootNavigation.Navigate("mainpage");
-            //RootNavigation.SelectedPageIndex = 0;
+            // 启动时应用上次保存的主题模式
+            _themeManagerService.ApplyStartupTheme(this);
+            UpdateThemeMenuCheckState();
 
             Task.Run(async () =>
             {
@@ -67,14 +67,12 @@ namespace MyComputerManager
                     RootMainGrid.Visibility = Visibility.Visible;
 
                     var o = new ObservableCollection<NamespaceItem>();
-                    foreach (var item in data)
-                        o.Add(item);
+                    if (data != null)
+                        foreach (var item in data)
+                            o.Add(item);
                     _dataService.SetData(o);
-                    var res = _navigationService.Navigate(typeof(MainPage));
-                    //var res = _navigationService.Navigate(typeof(Input));
+                    _navigationService.Navigate(typeof(MainPage));
                 });
-                
-                return true;
             });
         }
 
@@ -90,44 +88,91 @@ namespace MyComputerManager
             _navigationService.Navigate(typeof(DetailPage));
         }
 
-        public Frame GetFrame()
-        {
-            return RootFrame;
-        }
-
-        public INavigation GetNavigation()
-        {
-            return RootNavigation;
-        }
-
-        public bool Navigate(Type pageType)
-        {
-            return RootNavigation.Navigate(pageType);
-        }
-
-        public void SetPageService(IPageService pageService)
-        {
-            RootNavigation.PageService = pageService;
-        }
-
-        public void ShowWindow()
-        {
-            Show();
-        }
-
-        public void CloseWindow()
-        {
-            Close();
-        }
-
         private void MenuTheme_Click(object sender, RoutedEventArgs e)
         {
-            _themeService.SetTheme(_themeService.GetTheme() == ThemeType.Dark ? ThemeType.Light : ThemeType.Dark);
+            ThemeContextMenu.PlacementTarget = ThemeMenuButton;
+            ThemeContextMenu.IsOpen = true;
+        }
+
+        private void ThemeModeMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            Models.AppTheme mode;
+            if (sender == MenuItem_System)
+                mode = Models.AppTheme.System;
+            else if (sender == MenuItem_Light)
+                mode = Models.AppTheme.Light;
+            else
+                mode = Models.AppTheme.Dark;
+
+            _themeManagerService.ApplyThemeMode(mode);
+            UpdateThemeMenuCheckState();
+        }
+
+        private void UpdateThemeMenuCheckState()
+        {
+            var current = _themeManagerService.CurrentMode;
+            MenuItem_System.IsChecked = current == Models.AppTheme.System;
+            MenuItem_Light.IsChecked = current == Models.AppTheme.Light;
+            MenuItem_Dark.IsChecked = current == Models.AppTheme.Dark;
         }
 
         private void MenuInfo_Click(object sender, RoutedEventArgs e)
         {
             _navigationService.Navigate(typeof(AboutPage));
+        }
+
+        private async void MenuFolderShow_Click(object sender, RoutedEventArgs e)
+        {
+            var folders = ThisPcFolderHelper.GetItems();
+
+            var panel = new StackPanel
+            {
+                Margin = new Thickness(0, 0, 0, 8)
+            };
+
+            foreach (var folder in folders)
+            {
+                var toggle = new ToggleSwitch
+                {
+                    Content = folder.Name,
+                    IsChecked = folder.IsHidden,
+                    Margin = new Thickness(0, 4, 0, 0)
+                };
+                panel.Children.Add(toggle);
+            }
+
+            var dialog = new ContentDialog
+            {
+                Title = "此电脑文件夹",
+                Content = new ScrollViewer
+                {
+                    MaxHeight = 320,
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    Content = panel
+                },
+                PrimaryButtonText = "应用",
+                CloseButtonText = "取消"
+            };
+
+            var result = await _contentDialogService.ShowAsync(dialog, CancellationToken.None);
+            if (result != ContentDialogResult.Primary)
+                return;
+
+            var toggles = panel.Children.OfType<ToggleSwitch>().ToList();
+            for (int i = 0; i < folders.Count && i < toggles.Count; i++)
+            {
+                var folder = folders[i];
+                bool hide = toggles[i].IsChecked == true;
+                folder.IsHidden = hide;
+                var res = ThisPcFolderHelper.SetHidden(folder.Clsid, hide);
+                if (!res.success)
+                {
+                    _snackBarService.Show("操作失败", res.result, SymbolRegular.ShieldError16);
+                    return;
+                }
+            }
+
+            _snackBarService.Show("操作成功", "已更新此电脑文件夹显示设置", SymbolRegular.CheckmarkCircle16);
         }
     }
 }

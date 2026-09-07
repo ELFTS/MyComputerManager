@@ -1,29 +1,33 @@
-﻿using MyComputerManager.Services.Contracts;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Wpf.Ui.Common;
+using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
+using MyComputerManager.Services.Contracts;
+using Wpf.Ui;
 using Wpf.Ui.Controls;
 
 namespace MyComputerManager.Services
 {
     public class SnackBarService : ISnackBarService
     {
-        private Snackbar _snackbar;
-        public void SetSnackbar(Snackbar snackbar)
+        private readonly ISnackbarService _snackbarService;
+
+        public SnackBarService(IServiceProvider serviceProvider)
         {
-            _snackbar = snackbar;
+            _snackbarService = serviceProvider.GetRequiredService<ISnackbarService>();
         }
 
-        public void Show(string title, string message, SymbolRegular icon = SymbolRegular.Info20, ControlAppearance appearance = ControlAppearance.Secondary, int timeout = 5000, bool showclosebutton = true)
+        public void SetSnackbarPresenter(SnackbarPresenter presenter)
         {
-            _snackbar.Icon = icon;
-            _snackbar.Appearance = appearance;
-            _snackbar.Timeout = timeout;
-            _snackbar.CloseButtonEnabled = showclosebutton;
-            _snackbar.Show(title, message);
+            _snackbarService.SetSnackbarPresenter(presenter);
+        }
+
+        public void Show(string title, string message, SymbolRegular icon = SymbolRegular.Info20,
+            ControlAppearance appearance = ControlAppearance.Secondary, int timeout = 5000, bool showclosebutton = true)
+        {
+            if (_snackbarService.GetSnackbarPresenter() == null)
+                return;
+
+            _snackbarService.Show(title, message, appearance, new SymbolIcon { Symbol = icon }, TimeSpan.FromMilliseconds(timeout));
         }
     }
 }

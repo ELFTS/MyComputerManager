@@ -1,25 +1,20 @@
-﻿using GalaSoft.MvvmLight;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using MyComputerManager.Helpers;
 using MyComputerManager.Models;
 using MyComputerManager.Services.Contracts;
 using MyComputerManager.Views;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Wpf.Ui.Appearance;
-using Wpf.Ui.Common;
-using Wpf.Ui.Mvvm.Contracts;
+using Wpf.Ui.Controls;
 
 namespace MyComputerManager.ViewModels
 {
-    public class MainPageViewModel : ViewModelBase
+    public partial class MainPageViewModel : ObservableObject
     {
         private readonly INavigationService _navigationService;
         private readonly IDataService _dataService;
         private readonly ISnackBarService _snackBarService;
+
         public MainPageViewModel(INavigationService navigationService, IDataService dataService, ISnackBarService snackBarService)
         {
             _navigationService = navigationService;
@@ -27,33 +22,20 @@ namespace MyComputerManager.ViewModels
             _snackBarService = snackBarService;
             Items = (ObservableCollection<NamespaceItem>)_dataService.GetData();
             dataService.SetVM(this);
-            GoDetailCommand = new RelayCommand(GoDetail);
-            ToggleCommand = new RelayCommand(ToggleEnabled);
         }
 
+        [ObservableProperty]
         private ObservableCollection<NamespaceItem> items;
 
-        public ObservableCollection<NamespaceItem> Items
-        {
-            get { return items; }
-            set
-            {
-                items = value;
-                this.RaisePropertyChanged("Items");
-            }
-        }
-
-        public void GoDetail(object item)
+        [RelayCommand]
+        private void GoDetail(object item)
         {
             _dataService.SetData(item);
             _navigationService.Navigate(typeof(DetailPage));
-            //_navigationService.Navigate(typeof(Input));
         }
 
-        public RelayCommand GoDetailCommand { get; set; }
-        public RelayCommand ToggleCommand { get; set; }
-
-        public void ToggleEnabled(object obj)
+        [RelayCommand]
+        private void ToggleEnabled(object obj)
         {
             NamespaceItem item = (NamespaceItem)obj;
             var res = NamespaceHelper.SetEnabled(item, item.IsEnabled);
@@ -73,7 +55,7 @@ namespace MyComputerManager.ViewModels
 
         public void AddItem(NamespaceItem item)
         {
-            Items.Add(item);
+            Items?.Add(item);
         }
     }
 }

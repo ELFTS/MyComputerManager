@@ -1,19 +1,14 @@
-﻿using MyComputerManager.Models;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using System.Windows;
-using Wpf.Ui.Common;
+using MyComputerManager.Models;
 using Wpf.Ui.Controls;
 
 namespace MyComputerManager.Services.Contracts
 {
     public interface IDialogService
     {
-        void SetDialog(Dialog dialog);
+        void SetDialogHost(ContentDialogHost dialogHost);
 
-        Task<bool> ShowDialog(DialogMessage content, double? dialogHeight, ControlAppearance buttonLeftAppearance, string buttonLeftText, ControlAppearance buttonRightAppearance, string buttonRightText);
+        Task<bool> ShowDialog(DialogMessage content, string primaryText, string secondaryText);
     }
 }

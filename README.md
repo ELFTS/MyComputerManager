@@ -13,16 +13,22 @@
 ## 使用方法
 在[Github Releases](https://github.com/1357310795/MyComputerManager/releases)下载最新版程序，双击直接运行
 
+## 项目来源
+本项目基于 [MyComputerManager](https://github.com/1357310795/MyComputerManager)（原作者 1357310795）开发，在原项目基础上进行了 .NET 10 迁移与功能增强，特此感谢原作者的辛勤付出与开源精神。
+
 ## 开发者相关
-项目基于 .NET Framework 4.7.2 开发（为了兼容性就用老版本啦😓），又是一个极好的 WPF 学习材料。程序涉及到了：
+项目基于 [.NET 10](https://dotnet.microsoft.com/)（WPF）+ [WPF-UI](https://github.com/lepoco/wpfui) 4.3 开发，是一个兼容 Windows 11 风格的 WPF 学习材料。程序涉及到了：
 - 自定义控件（基于xaml/基于cs代码）
 - 重写控件样式
 - 数据绑定（绑定到其他控件/DataContext，设置RelativeSource）
-- Mvvm模式（PropertyChanged/Command，DataTemplate）
+- Mvvm模式（CommunityToolkit.Mvvm）
 - 附加事件+控件行为（Microsoft.Xaml.Behaviors库）
 - 异步方法
 - 依赖注入（Dependency Injection）模式
 - 页面导航
+
+## 更新日志
+完整的更新记录请参见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 开源许可
 本程序通过 GNU General Public License v3.0 许可在 [GitHub](https://github.com/1357310795/MyComputerManager) 开源，如果您觉得软件好用，请不要吝惜您的 Star 哦，这会对我有非常大的帮助！

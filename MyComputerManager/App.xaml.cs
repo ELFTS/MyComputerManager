@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
+using System;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Media;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -17,12 +12,7 @@ using MyComputerManager.Services;
 using MyComputerManager.Services.Contracts;
 using MyComputerManager.ViewModels;
 using MyComputerManager.Views;
-using Wpf.Ui.Demo.Models;
-using Wpf.Ui.Demo.Services;
-using Wpf.Ui.Mvvm.Contracts;
-using Wpf.Ui.Mvvm.Services;
-using DialogService = MyComputerManager.Services.DialogService;
-using IDialogService = MyComputerManager.Services.Contracts.IDialogService;
+using Wpf.Ui;
 
 namespace MyComputerManager
 {
@@ -33,21 +23,19 @@ namespace MyComputerManager
     {
         private IHost _host;
 
-        protected override void OnStartup(StartupEventArgs e)
+        private async void OnStartup(object sender, StartupEventArgs e)
         {
-            base.OnStartup(e);
             AppDomain.CurrentDomain.FirstChanceException += FirstChanceHandler;
-            //Wpf.Ui.Appearance.Accent.Apply(Color.FromRgb(15, 123, 210));
 
             _host = Host.CreateDefaultBuilder(e.Args)
             .ConfigureAppConfiguration(c =>
             {
-                c.SetBasePath(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location));
+                c.SetBasePath(AppContext.BaseDirectory);
             })
             .ConfigureServices(ConfigureServices)
             .Build();
 
-            _host.Start();
+            await _host.StartAsync();
         }
 
         private void ConfigureServices(HostBuilderContext context, IServiceCollection services)
@@ -55,53 +43,57 @@ namespace MyComputerManager
             // App Host
             services.AddHostedService<ApplicationHostService>();
 
-            // Theme manipulation
-            services.AddSingleton<IThemeService, ThemeService>();
+            // 导航解析服务（Frame 导航）
+            services.AddSingleton<Services.Contracts.INavigationService, Services.NavigationService>();
 
-            // Taskbar manipulation
-            services.AddSingleton<ITaskBarService, TaskBarService>();
+            // 主题
+            services.AddSingleton<IThemeService, Wpf.Ui.ThemeService>();
 
-            // Page resolver service
-            services.AddSingleton<IPageService, PageService>();
+            // 配置持久化 + 三态主题管理
+            services.AddSingleton<ISettingsService, SettingsService>();
+            services.AddSingleton<IThemeManagerService, ThemeManagerService>();
 
-            // Service containing navigation, same as INavigationWindow... but without window
-            services.AddSingleton<INavigationService, NavigationService>();
-            
-
+            // Snackbar / Dialog
+            services.AddSingleton<ISnackbarService, SnackbarService>();
+            services.AddSingleton<IContentDialogService, ContentDialogService>();
             services.AddSingleton<ISnackBarService, SnackBarService>();
-            services.AddSingleton<IDataService, DataService>();
             services.AddSingleton<IDialogService, DialogService>();
 
-            // Main window container with navigation
-            services.AddScoped<INavigationWindow, MainWindow>();
-            //services.AddScoped<ContainerViewModel>();
+            // 数据服务
+            services.AddSingleton<IDataService, DataService>();
+
+            // 主窗口
+            services.AddSingleton<MainWindow>();
 
             // Views and ViewModels
-            services.AddScoped<MainPage>();
-            services.AddScoped<MainPageViewModel>();
+            services.AddSingleton<MainPage>();
+            services.AddSingleton<MainPageViewModel>();
 
             services.AddTransient<DetailPage>();
             services.AddTransient<DetailPageViewModel>();
 
             services.AddSingleton<AboutPage>();
-
-            // Configuration
-            services.Configure<AppConfig>(context.Configuration.GetSection(nameof(AppConfig)));
         }
 
-        protected override void OnExit(ExitEventArgs e)
+        private async void OnExit(object sender, ExitEventArgs e)
         {
-            base.OnExit(e);
-            _host.StopAsync().ConfigureAwait(false);
-            _host.Dispose();
-            _host = null;
+            if (_host != null)
+            {
+                await _host.StopAsync();
+                _host.Dispose();
+                _host = null;
+            }
+        }
+
+        private void OnDispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+        {
+            try { System.IO.File.AppendAllText("err.log", DateTime.Now + " DISP: " + e.Exception + "\n"); } catch { }
         }
 
         public static void FirstChanceHandler(object source, FirstChanceExceptionEventArgs e)
         {
-                Console.WriteLine("FirstChanceException event raised in {0}: {1}",
-                    AppDomain.CurrentDomain.FriendlyName, e.Exception.Message);
-            //MessageBox.Show(e.Exception.ToString());
+            Console.WriteLine("FirstChanceException event raised in {0}: {1}",
+                AppDomain.CurrentDomain.FriendlyName, e.Exception.Message);
         }
     }
 }
